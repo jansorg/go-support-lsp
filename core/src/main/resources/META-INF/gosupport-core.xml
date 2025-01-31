@@ -1,0 +1,10 @@
+<idea-plugin>
+    <resource-bundle>messages.GoSupportBundle</resource-bundle>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <postStartupActivity implementation="dev.j_a.gosupport.lsp.GoplsRegisterLanguageServerActivity"/>
+    </extensions>
+
+    <actions>
+    </actions>
+</idea-plugin>

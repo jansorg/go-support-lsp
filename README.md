@@ -1,2 +1,3 @@
-# go-support-lsp
-Golang Support via gopls to demonstrate my own LSP client implementation
+# Golang Support for JetBrains IDEs
+
+This is a plugin to support Go with JetBrains IDEs. 

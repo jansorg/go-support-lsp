@@ -1,0 +1,23 @@
+<idea-plugin xmlns:xi="http://www.w3.org/2001/XInclude" package="dev.j_a.gosupport">
+    <id>dev.j-a.gosupport</id>
+    <name>Go Support LSP</name>
+    <category>language</category>
+
+    <vendor email="mail@ja-dev.eu" url="https://www.j-a.dev">joachim_ansorg</vendor>
+
+    <!-- This plugin can't be used with the JetBrains Go language support plugin or Goland -->
+    <incompatible-with>org.jetbrains.plugins.go</incompatible-with>
+
+    <!--suppress PluginXmlValidity, this is updated by the build -->
+    <description/>
+
+    <resource-bundle>messages.GoSupportBundle</resource-bundle>
+
+    <!-- LSP library -->
+    <xi:include href="/META-INF/plugin-lsp-client.xml"/>
+    <!-- DAP library -->
+    <xi:include href="/META-INF/plugin-dap-client.xml"/>
+
+    <!-- Go Support Plugin -->
+    <xi:include href="/META-INF/gosupport-core.xml"/>
+</idea-plugin>
