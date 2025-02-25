@@ -15,7 +15,7 @@ object GoplsLanguageServerSupport : BaseLanguageServerSupport(
         file: VirtualFile,
         serverStarter: LanguageServerSupport.LanguageServerStarter
     ) {
-        if (Gopls.isSupported(file)) {
+        if (Gopls.isAvailable(project) && Gopls.isSupported(file)) {
             serverStarter.ensureStarted(GoplsServerDescriptor(project))
         }
     }
