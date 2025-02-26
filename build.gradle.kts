@@ -121,10 +121,6 @@ allprojects {
 }
 
 project(":") {
-    apply {
-        plugin("org.jetbrains.intellij.platform")
-    }
-
     dependencies {
         implementation(project(":core"))
     }
