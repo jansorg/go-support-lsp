@@ -8,12 +8,7 @@ val isCI = System.getenv("CI") != null
 val platformVersion = prop("platformVersion").toInt()
 val ideVersion = prop("ideVersion")
 val junitVersion = prop("junitVersion")
-val lspLibraryVersion = prop("lspLibraryVersion").let {
-    when {
-        it.contains("-SNAPSHOT") -> it.removeSuffix("-SNAPSHOT") + ".$platformVersion-SNAPSHOT"
-        else -> "$it.$platformVersion"
-    }
-}
+val lspLibraryVersion = libs.versions.lsp.library.get()
 
 // https://plugins.jetbrains.com/docs/intellij/setting-up-theme-environment.html#add-jdk-and-intellij-platform-plugin-sdk
 val javaPlatformVersion = JavaVersion.VERSION_21
@@ -49,14 +44,21 @@ allprojects {
         }
     }
 
+    // Replace version "default" of LSP and DAP libraries with the version for the current platform
+    configurations.all {
+        resolutionStrategy.eachDependency {
+            if (requested.group == "dev.j-a.ide" && requested.version == "default") {
+                useVersion("$lspLibraryVersion.$platformVersion")
+                because("LSP platform version")
+            }
+        }
+    }
+
     dependencies {
-        // LSP
-        implementation("dev.j-a.ide:lsp-client:$lspLibraryVersion") {
+        implementation(rootProject.libs.lsp.client) {
             exclude("org.jetbrains.kotlin")
         }
-
-        // DAP
-        implementation("dev.j-a.ide:dap-client:$lspLibraryVersion") {
+        implementation(rootProject.libs.dap.client) {
             exclude("org.jetbrains.kotlin")
         }
 
@@ -69,9 +71,7 @@ allprojects {
         // unfortunately, we still need JUnit4
         // https://mvnrepository.com/artifact/junit/junit
         testImplementation("junit:junit:4.13.2")
-
-        // vintage tests
-        testImplementation("junit:junit:4.13.2")
+        // Jupiter vintage tests
         testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
 
         intellijPlatform {
