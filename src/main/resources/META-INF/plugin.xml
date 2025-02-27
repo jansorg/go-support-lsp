@@ -2,6 +2,7 @@
     <id>dev.j-a.gosupport</id>
     <name>Go Support LSP</name>
     <category>language</category>
+    <version>0.0.1</version>
 
     <vendor email="mail@ja-dev.eu" url="https://www.j-a.dev">joachim_ansorg</vendor>
 
@@ -9,14 +10,12 @@
     <incompatible-with>org.jetbrains.plugins.go</incompatible-with>
 
     <!--suppress PluginXmlValidity, this is updated by the build -->
-    <description/>
+    <description>Go language support using the Language Server Protocol</description>
 
     <resource-bundle>messages.GoSupportBundle</resource-bundle>
 
     <!-- LSP library -->
     <xi:include href="/META-INF/plugin-lsp-client.xml"/>
-    <!-- DAP library -->
-    <xi:include href="/META-INF/plugin-dap-client.xml"/>
 
     <!-- Go Support Plugin -->
     <xi:include href="/META-INF/gosupport-core.xml"/>

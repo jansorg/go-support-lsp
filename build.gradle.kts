@@ -1,3 +1,7 @@
+import com.github.jengelman.gradle.plugins.shadow.tasks.ShadowJar
+import com.github.jengelman.gradle.plugins.shadow.transformers.TransformerContext
+import org.apache.tools.zip.ZipEntry
+import org.apache.tools.zip.ZipOutputStream
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
 import org.jetbrains.kotlin.konan.properties.loadProperties
@@ -8,7 +12,7 @@ val isCI = System.getenv("CI") != null
 val platformVersion = prop("platformVersion").toInt()
 val ideVersion = prop("ideVersion")
 val junitVersion = prop("junitVersion")
-val lspLibraryVersion = libs.versions.lsp.library.get()
+val lspLibraryVersion = rootProject.libs.versions.lsp.library.get()
 
 // https://plugins.jetbrains.com/docs/intellij/setting-up-theme-environment.html#add-jdk-and-intellij-platform-plugin-sdk
 val javaPlatformVersion = JavaVersion.VERSION_21
@@ -20,6 +24,9 @@ plugins {
 
     // https://github.com/JetBrains/intellij-platform-gradle-plugin/releases
     id("org.jetbrains.intellij.platform") version "2.3.0"
+
+    // https://github.com/GradleUp/shadow
+    id("com.gradleup.shadow") version "9.0.0-beta9"
 }
 
 allprojects {
@@ -57,9 +64,7 @@ allprojects {
     dependencies {
         implementation(rootProject.libs.lsp.client) {
             exclude("org.jetbrains.kotlin")
-        }
-        implementation(rootProject.libs.dap.client) {
-            exclude("org.jetbrains.kotlin")
+            exclude("com.google.code.gson")
         }
 
         // https://mvnrepository.com/artifact/org.junit.jupiter
@@ -121,11 +126,56 @@ allprojects {
 }
 
 project(":") {
+    intellijPlatform {
+        pluginVerification {
+            ides {
+                recommended()
+            }
+        }
+    }
+
     dependencies {
-        implementation(project(":core"))
+        intellijPlatform {
+            pluginVerifier()
+        }
+
+        // Bundle JARs of subprojects into the composed plugin JAR
+        implementation(project(":core")) {
+            intellijPlatformPluginModule(this)
+        }
+
+        // Bundle LSP libraries into the composed plugin JAR
+        val lspLibrary by configurations.creating { isTransitive = true }
+        lspLibrary(rootProject.libs.lsp.client) {
+            exclude("org.jetbrains.kotlin")
+            exclude("com.google.code.gson")
+        }
+        lspLibrary.resolvedConfiguration.firstLevelModuleDependencies
+            .flatMap { it.allDependencies() }
+            .forEach { if (it.moduleGroup == "dev.j-a.ide") intellijPlatformPluginModule(it.name) }
+    }
+
+    tasks {
+        val shadowComposedJar by registering(ShadowJar::class) {
+            dependsOn(composedJar)
+
+            archiveBaseName = "gosupport-plugin"
+            from(zipTree(composedJar.get().outputs.files.singleFile))
+            transform(UpdatePluginXmlTransformer())
+            // Change the target package to be inside your own plugin's package
+            // For v2 descriptors, it must be inside the package specified by the 'package' attribute of <idea-plugin>
+            relocate("dev.j_a.ide", "dev.j_a.gosupport.lsp_support")
+        }
+
+        prepareSandbox {
+            pluginJar.set(shadowComposedJar.get().archiveFile)
+        }
+
+        prepareJarSearchableOptions.configure {
+            composedJarFile.set(shadowComposedJar.get().archiveFile)
+        }
     }
 }
-
 
 fun prop(name: String): String {
     return extra.properties[name] as? String ?: error("Property `$name` is not defined in gradle.properties")
@@ -137,4 +187,33 @@ fun loadPlatformProperties() {
     loadProperties(platformPropertiesPath.toString()).forEach { (key, value) ->
         rootProject.extra.set(key.toString(), value)
     }
+}
+
+private class UpdatePluginXmlTransformer : com.github.jengelman.gradle.plugins.shadow.transformers.Transformer {
+    private val transformedResources = mutableMapOf<String, String>()
+    private val transformedPaths = setOf("META-INF/plugin-lsp-client.xml", "META-INF/plugin-dap-client.xml")
+
+    override fun canTransformResource(element: FileTreeElement): Boolean = element.path in transformedPaths
+
+    override fun hasTransformedResource(): Boolean = transformedResources.isNotEmpty()
+
+    override fun transform(context: TransformerContext) {
+        val initialXml = context.inputStream.readAllBytes().toString(Charsets.UTF_8)
+        val patchedXml = context.relocators.fold(initialXml) { xml, relocator -> relocator.applyToSourceContent(xml) }
+        transformedResources.put(context.path, patchedXml)
+    }
+
+    override fun modifyOutputStream(os: ZipOutputStream, preserveFileTimestamps: Boolean) {
+        transformedResources.forEach { key, value ->
+            os.putNextEntry(ZipEntry(key))
+            os.write(value.toByteArray(Charsets.UTF_8))
+            os.flush()
+        }
+    }
+}
+
+fun ResolvedDependency.allDependencies(target: MutableSet<ResolvedDependency> = mutableSetOf()): Set<ResolvedDependency> {
+    target += this
+    children.forEach { it.allDependencies(target) }
+    return target
 }
