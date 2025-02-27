@@ -8,7 +8,7 @@ val isCI = System.getenv("CI") != null
 val platformVersion = prop("platformVersion").toInt()
 val ideVersion = prop("ideVersion")
 val junitVersion = prop("junitVersion")
-val lspLibraryVersion = libs.versions.lsp.library.get()
+val lspLibraryVersion = rootProject.libs.versions.lsp.library.get()
 
 // https://plugins.jetbrains.com/docs/intellij/setting-up-theme-environment.html#add-jdk-and-intellij-platform-plugin-sdk
 val javaPlatformVersion = JavaVersion.VERSION_21
@@ -19,7 +19,13 @@ plugins {
     kotlin("jvm")
 
     // https://github.com/JetBrains/intellij-platform-gradle-plugin/releases
-    id("org.jetbrains.intellij.platform") version "2.3.0"
+    id("org.jetbrains.intellij.platform") version "2.3.1-SNAPSHOT"
+
+    // Plugin from buildSrc to relocate the LSP package
+    // fixme Until the plugin is approved on the Gradle Plugin Portal,
+    //    follow this URL to install a snapshot locally:
+    //    https://github.com/jansorg/lsp-gradle-plugin?tab=readme-ov-file#publish-locally
+    id("dev.j-a.ide.lsp") version "0.3.0-SNAPSHOT"
 }
 
 allprojects {
@@ -48,19 +54,15 @@ allprojects {
     configurations.all {
         resolutionStrategy.eachDependency {
             if (requested.group == "dev.j-a.ide" && requested.version == "default") {
-                useVersion("$lspLibraryVersion.$platformVersion")
+                val suffix = if (lspLibraryVersion.endsWith("-SNAPSHOT")) "-SNAPSHOT" else ""
+                useVersion(lspLibraryVersion.removeSuffix(suffix) + "." + platformVersion + suffix)
                 because("LSP platform version")
             }
         }
     }
 
     dependencies {
-        implementation(rootProject.libs.lsp.client) {
-            exclude("org.jetbrains.kotlin")
-        }
-        implementation(rootProject.libs.dap.client) {
-            exclude("org.jetbrains.kotlin")
-        }
+        implementation(rootProject.libs.lsp.client)
 
         // https://mvnrepository.com/artifact/org.junit.jupiter
         testImplementation(platform("org.junit:junit-bom:$junitVersion"))
@@ -121,11 +123,29 @@ allprojects {
 }
 
 project(":") {
+    shadowLSP {
+        packagePrefix = "dev.j_a.gosupport.lsp_support"
+    }
+
+    intellijPlatform {
+        pluginVerification {
+            ides {
+                recommended()
+            }
+        }
+    }
+
     dependencies {
-        implementation(project(":core"))
+        intellijPlatform {
+            pluginVerifier()
+        }
+
+        // Bundle JARs of subprojects into the composed plugin JAR
+        implementation(project(":core")) {
+            intellijPlatformPluginModule(this)
+        }
     }
 }
-
 
 fun prop(name: String): String {
     return extra.properties[name] as? String ?: error("Property `$name` is not defined in gradle.properties")

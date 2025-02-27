@@ -1,8 +1,8 @@
 [versions]
 # Version of the j-a.dev LSP library,
 # it's used with the platform version to replace version "default" of lsp-client and dap-client
-lsp-library = "0.2.1"
+lsp-library = "0.2.6"
 
 [libraries]
+# Default is replaced by the resolutionStrategy
 lsp-client = "dev.j-a.ide:lsp-client:default"
-dap-client = "dev.j-a.ide:dap-client:default"
