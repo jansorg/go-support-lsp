@@ -1,6 +1,7 @@
 <idea-plugin xmlns:xi="http://www.w3.org/2001/XInclude" package="dev.j_a.gosupport">
     <id>dev.j-a.gosupport</id>
-    <name>Go Support LSP</name>
+    <name>Go Support</name>
+    <description>Go language support, based on the Gopls LSP server.</description>
     <category>language</category>
     <version>0.0.1</version>
 
@@ -8,6 +9,9 @@
 
     <!-- This plugin can't be used with the JetBrains Go language support plugin or Goland -->
     <incompatible-with>org.jetbrains.plugins.go</incompatible-with>
+
+    <depends>com.intellij.modules.platform</depends>
+    <depends>com.intellij.modules.lang</depends>
 
     <!--suppress PluginXmlValidity, this is updated by the build -->
     <description>Go language support using the Language Server Protocol</description>

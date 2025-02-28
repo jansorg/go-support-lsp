@@ -3,6 +3,10 @@
 
     <extensions defaultExtensionNs="com.intellij">
         <postStartupActivity implementation="dev.j_a.gosupport.lsp.GoplsRegisterLanguageServerActivity"/>
+
+        <statusBarWidgetFactory
+                id="dev.j_a.gosupport.lsp.status"
+                implementation="dev.j_a.gosupport.lsp.GoplsStatusBarWidgetFactory"/>
     </extensions>
 
     <actions>

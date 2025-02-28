@@ -1,5 +1,6 @@
 import org.jetbrains.intellij.platform.gradle.IntelliJPlatformType
 import org.jetbrains.intellij.platform.gradle.TestFrameworkType
+import org.jetbrains.intellij.platform.gradle.tasks.VerifyPluginTask
 import org.jetbrains.kotlin.konan.properties.loadProperties
 
 loadPlatformProperties()
@@ -19,13 +20,10 @@ plugins {
     kotlin("jvm")
 
     // https://github.com/JetBrains/intellij-platform-gradle-plugin/releases
-    id("org.jetbrains.intellij.platform") version "2.3.1-SNAPSHOT"
+    id("org.jetbrains.intellij.platform") version "2.4.0"
 
-    // Plugin from buildSrc to relocate the LSP package
-    // fixme Until the plugin is approved on the Gradle Plugin Portal,
-    //    follow this URL to install a snapshot locally:
-    //    https://github.com/jansorg/lsp-gradle-plugin?tab=readme-ov-file#publish-locally
-    id("dev.j-a.ide.lsp") version "0.3.0-SNAPSHOT"
+    // Plugin to help relocate the LSP library package to make it unique to your plugin
+    id("dev.j-a.ide.lsp") version "0.3.2"
 }
 
 allprojects {
@@ -77,7 +75,7 @@ allprojects {
         testRuntimeOnly("org.junit.vintage:junit-vintage-engine")
 
         intellijPlatform {
-            create(IntelliJPlatformType.IntellijIdeaCommunity, ideVersion)
+            create(IntelliJPlatformType.IntellijIdeaUltimate, ideVersion)
 
             testFramework(TestFrameworkType.Bundled)
             testFramework(TestFrameworkType.Platform)
@@ -122,28 +120,34 @@ allprojects {
     }
 }
 
-project(":") {
-    shadowLSP {
-        packagePrefix = "dev.j_a.gosupport.lsp_support"
-    }
+shadowLSP {
+    packagePrefix = "dev.j_a.gosupport.lsp_support"
+}
 
+intellijPlatform {
+    pluginVerification {
+        failureLevel.set(
+            listOf(
+                VerifyPluginTask.FailureLevel.INTERNAL_API_USAGES,
+                VerifyPluginTask.FailureLevel.OVERRIDE_ONLY_API_USAGES,
+                VerifyPluginTask.FailureLevel.COMPATIBILITY_PROBLEMS,
+            )
+        )
+
+        ides {
+            recommended()
+        }
+    }
+}
+
+dependencies {
     intellijPlatform {
-        pluginVerification {
-            ides {
-                recommended()
-            }
-        }
+        pluginVerifier()
     }
 
-    dependencies {
-        intellijPlatform {
-            pluginVerifier()
-        }
-
-        // Bundle JARs of subprojects into the composed plugin JAR
-        implementation(project(":core")) {
-            intellijPlatformPluginModule(this)
-        }
+    // Bundle JARs of subprojects into the composed plugin JAR
+    implementation(project(":core")) {
+        intellijPlatformPluginModule(this)
     }
 }
 

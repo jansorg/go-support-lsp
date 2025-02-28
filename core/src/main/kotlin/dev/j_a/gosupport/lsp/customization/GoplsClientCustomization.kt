@@ -5,10 +5,10 @@ import dev.j_a.ide.lsp.api.descriptor.customization.ClientFoldingSupport
 import org.eclipse.lsp4j.FoldingRange
 
 object GoplsClientCustomization : ClientCustomization() {
-    override val foldingSupport: ClientFoldingSupport = GoplsClientFoldingSupport()
+    override val foldingSupport: ClientFoldingSupport = GoplsClientFoldingSupport
 }
 
-private class GoplsClientFoldingSupport : ClientFoldingSupport() {
+private object GoplsClientFoldingSupport : ClientFoldingSupport() {
     override fun preProcess(foldingRange: FoldingRange) {
         // https://github.com/golang/go/issues/71489
         if (foldingRange.endLine > foldingRange.startLine && foldingRange.endCharacter == null) {
